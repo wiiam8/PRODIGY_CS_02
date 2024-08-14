@@ -1,0 +1,72 @@
+from PIL import Image
+import random
+
+def modify_pixel_value(pixel, key):
+    r = (pixel[0] + key) % 256
+    g = (pixel[1] + key) % 256
+    b = (pixel[2] + key) % 256
+    return (r, g, b)
+
+def encrypt_image(image_path, key, method="shuffle"):
+    image = Image.open(image_path)
+    pixels = list(image.getdata())
+
+    random.seed(key)
+    
+    if method == "shuffle":
+        # Shuffle pixels for encryption
+        random.shuffle(pixels)
+    elif method == "modify":
+        # Modify each pixel value using the key
+        pixels = [modify_pixel_value(p, key) for p in pixels]
+    
+    encrypted_image = Image.new(image.mode, image.size)
+    encrypted_image.putdata(pixels)
+    encrypted_image_path = f"encrypted_image_{method}.png"
+    encrypted_image.save(encrypted_image_path)
+    
+    return encrypted_image_path
+
+def decrypt_image(image_path, key, size, method="shuffle"):
+    encrypted_image = Image.open(image_path)
+    encrypted_pixels = list(encrypted_image.getdata())
+    random.seed(key)
+    
+    if method == "shuffle":
+        original_order = list(range(len(encrypted_pixels)))
+        random.shuffle(original_order)
+        
+        decrypted_pixels = [None] * len(encrypted_pixels)
+        for i, pixel_index in enumerate(original_order):
+            decrypted_pixels[pixel_index] = encrypted_pixels[i]
+    elif method == "modify":
+        # Revert the modification by subtracting the key value
+        decrypted_pixels = [modify_pixel_value(p, -key) for p in encrypted_pixels]
+    
+    decrypted_image = Image.new(encrypted_image.mode, size)
+    decrypted_image.putdata(decrypted_pixels)
+    decrypted_image_path = f"decrypted_image_{method}.png"
+    decrypted_image.save(decrypted_image_path)
+    
+    return decrypted_image_path
+
+def main():
+    print("Welcome to the Image Encryption Tool!")
+    action = input("Would you like to encrypt or decrypt an image? (e/d): ").lower()
+    image_path = input("Enter the path of the image file: ")
+    key = int(input("Enter a numeric key for encryption/decryption: "))
+    
+    if action == 'e':
+        method = input("Choose an encryption method (shuffle/modify): ").lower()
+        encrypted_image_path = encrypt_image(image_path, key, method)
+        print(f"Image encrypted and saved as {encrypted_image_path}")
+    elif action == 'd':
+        method = input("Choose the decryption method used (shuffle/modify): ").lower()
+        size = Image.open(image_path).size
+        decrypted_image_path = decrypt_image(image_path, key, size, method)
+        print(f"Image decrypted and saved as {decrypted_image_path}")
+    else:
+        print("Invalid choice! Please run the program again.")
+
+if __name__ == "__main__":
+    main()
